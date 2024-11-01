@@ -44,3 +44,11 @@ target_include_directories(cobweb_continuous PRIVATE include/)
 target_link_libraries(cobweb_continuous PRIVATE Eigen3::Eigen)
 target_compile_features(cobweb_continuous PRIVATE cxx_std_17)
 install(TARGETS cobweb_continuous DESTINATION cobweb)
+
+# nanobind_add_module(
+#   dev_cobweb_continuous src/dev_cobweb_continuous.cpp src/dev_cobweb_continuous_node.cpp
+#   src/dev_cobweb_continuous_tree.cpp src/helper.cpp)
+# target_include_directories(dev_cobweb_continuous PRIVATE include/)
+# target_link_libraries(dev_cobweb_continuous PRIVATE Eigen3::Eigen)
+# target_compile_features(dev_cobweb_continuous PRIVATE cxx_std_17)
+# install(TARGETS dev_cobweb_continuous DESTINATION cobweb)

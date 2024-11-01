@@ -119,6 +119,8 @@ public:
     ATTR_COUNT_TYPE sum_n_logn;
     AV_COUNT_TYPE av_count;
 
+    int concept_id;
+
     CobwebNode();
     CobwebNode(CobwebNode *otherNode);
     void increment_counts(const AV_COUNT_TYPE &instance);
@@ -159,7 +161,7 @@ public:
     bool is_exact_match(const AV_COUNT_TYPE &instance);
     size_t _hash();
     std::string __str__();
-    std::string concept_hash();
+    int concept_hash();
     std::string pretty_print(int depth = 0);
     int depth();
     bool is_parent(CobwebNode *otherConcept);
@@ -193,6 +195,9 @@ public:
     bool norm_attributes;
     CobwebNode *root;
     AV_KEY_TYPE attr_vals;
+    int node_count = 0;
+    // create a long long type
+    unsigned long long int flop_count = 0;
 
     CobwebTree(float alpha, bool weight_attr, int objective, bool children_norm, bool norm_attributes)
     {
@@ -206,6 +211,7 @@ public:
         this->root = new CobwebNode();
         this->root->tree = this;
         this->attr_vals = AV_KEY_TYPE();
+        this->flop_count = 0;
     }
 
     std::string __str__()
@@ -368,7 +374,8 @@ public:
     public:
         CobwebTree *cobwebTree;
         std::stack<CobwebNode *> nodeStack;
-        std::stack<int> keyStack; // Stack to keep track of the nested keys
+        // std::stack<int> keyStack; // Stack to keep track of the nested keys
+        std::vector<int> keyVector; 
 
         MyHandler(CobwebTree *tree) : cobwebTree(tree) {}
 
@@ -378,124 +385,153 @@ public:
             // check if the key is in the map
             if (ATTRIBUTE_MAP.find(key) != ATTRIBUTE_MAP.end())
             {
-                keyStack.push(ATTRIBUTE_MAP.at(key));
+                // keyStack.push(ATTRIBUTE_MAP.at(key));
+                keyVector.push_back(ATTRIBUTE_MAP.at(key));
             }
             else
             {
                 int key = std::stoi(std::string(str, length));
-                keyStack.push(key);
+                // keyStack.push(key);
+                keyVector.push_back(key);
             }
             return true;
         }
 
         bool Bool(bool b)
         {
-            if (keyStack.top() == ATTRIBUTE_MAP.at("weight_attr"))
+            // if (keyStack.top() == ATTRIBUTE_MAP.at("weight_attr"))
+            if (keyVector.back() == ATTRIBUTE_MAP.at("weight_attr"))
             {
                 cobwebTree->weight_attr = b;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("children_norm"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("children_norm"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("children_norm"))
             {
                 cobwebTree->children_norm = b;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("norm_attributes"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("norm_attributes"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("norm_attributes"))
             {
                 cobwebTree->norm_attributes = b;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
             return true;
         }
 
         bool Uint(unsigned i)
         {
-            if (keyStack.top() == ATTRIBUTE_MAP.at("objective"))
+            // if (keyStack.top() == ATTRIBUTE_MAP.at("objective"))
+            if (keyVector.back() == ATTRIBUTE_MAP.at("objective"))
             {
                 cobwebTree->objective = i;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("weight_attr"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("weight_attr"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("weight_attr"))
             {
                 cobwebTree->weight_attr = i;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("children_norm"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("children_norm"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("children_norm"))
             {
                 cobwebTree->children_norm = i;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("norm_attributes"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("norm_attributes"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("norm_attributes"))
             {
                 cobwebTree->norm_attributes = i;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
             return true;
         }
 
-        int pop_x(int x)
-        {
-            // copy the stack, not just the reference
-            std::stack<int> tempStack = keyStack;
-            if (x > tempStack.size())
-            {
-                return -1;
-            }
-            for (int i = 0; i < x; i++)
-            {
-                tempStack.pop();
-            }
-            return tempStack.top();
-        }
+        // int pop_x(int x)
+        // {
+        //     // copy the stack, not just the reference
+        //     std::stack<int> tempStack = keyStack;
+        //     if (x > tempStack.size())
+        //     {
+        //         return -1;
+        //     }
+        //     for (int i = 0; i < x; i++)
+        //     {
+        //         tempStack.pop();
+        //     }
+        //     return tempStack.top();
+        // }
 
         bool Double(double d)
         {
-            int currentKey = keyStack.top();
+            // int currentKey = keyStack.top();
+            int currentKey = keyVector.back();
             if (currentKey == ATTRIBUTE_MAP.at("alpha"))
             {
                 std::cout << "alpha: " << d << std::endl;
                 std::cout << "currentKey: " << currentKey << std::endl;
                 cobwebTree->alpha = d;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
             else if (currentKey == ATTRIBUTE_MAP.at("count"))
             {
                 CobwebNode *currentNode = nodeStack.top();
                 currentNode->count = d;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (pop_x(1) == ATTRIBUTE_MAP.at("a_count"))
+            // else if (pop_x(1) == ATTRIBUTE_MAP.at("a_count"))
+            else if (keyVector[keyVector.size() - 2] == ATTRIBUTE_MAP.at("a_count"))
             {
                 CobwebNode *currentNode = nodeStack.top();
                 currentNode->a_count[currentKey] = d;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (pop_x(1) == ATTRIBUTE_MAP.at("sum_n_logn"))
+            // else if (pop_x(1) == ATTRIBUTE_MAP.at("sum_n_logn"))
+            else if (keyVector[keyVector.size() - 2] == ATTRIBUTE_MAP.at("sum_n_logn"))
             {
                 CobwebNode *currentNode = nodeStack.top();
                 currentNode->sum_n_logn[currentKey] = d;
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
-            else if (pop_x(2) == ATTRIBUTE_MAP.at("av_count"))
+            // else if (pop_x(2) == ATTRIBUTE_MAP.at("av_count"))
+            else if (keyVector[keyVector.size() - 3] == ATTRIBUTE_MAP.at("av_count"))
             {
                 CobwebNode *currentNode = nodeStack.top();
-                currentNode->av_count[pop_x(1)][currentKey] = d;
-                keyStack.pop();
+                // currentNode->av_count[pop_x(1)][currentKey] = d;
+                currentNode->av_count[keyVector[keyVector.size() - 2]][currentKey] = d;
+                // keyStack.pop();
+                keyVector.pop_back();
             }
             else
             {
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
             return true;
         }
 
         bool StartObject()
         {
-            if (keyStack.empty())
+            // if (keyStack.empty())
+            if (keyVector.empty())
             {
                 return true;
             }
-            if (keyStack.top() == ATTRIBUTE_MAP.at("root"))
+            // if (keyStack.top() == ATTRIBUTE_MAP.at("root"))
+            if (keyVector.back() == ATTRIBUTE_MAP.at("root"))
             {
                 CobwebNode *rootNode = new CobwebNode();
                 rootNode->tree = cobwebTree;
@@ -504,11 +540,13 @@ public:
                 nodeStack.push(rootNode);
                 cobwebTree->root = rootNode;
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("a_count") || keyStack.top() == ATTRIBUTE_MAP.at("sum_n_logn") || keyStack.top() == ATTRIBUTE_MAP.at("av_count"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("a_count") || keyStack.top() == ATTRIBUTE_MAP.at("sum_n_logn") || keyStack.top() == ATTRIBUTE_MAP.at("av_count"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("a_count") || keyVector.back() == ATTRIBUTE_MAP.at("sum_n_logn") || keyVector.back() == ATTRIBUTE_MAP.at("av_count"))
             {
                 return true;
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
             {
                 CobwebNode *newNode = new CobwebNode();
                 newNode->tree = cobwebTree;
@@ -522,26 +560,31 @@ public:
 
         bool EndObject(rapidjson::SizeType memberCount)
         {
-            if (keyStack.empty() && nodeStack.empty())
+            // if (keyStack.empty() && nodeStack.empty())
+            if (keyVector.empty() && nodeStack.empty())
             {
                 return true;
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("root"))
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("root"))
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("root"))
             {
                 nodeStack.pop();
             }
-            else if (keyStack.top() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
+            // else if (keyStack.top() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
+            else if (keyVector.back() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
             {
                 nodeStack.pop();
             }
 
-            if (keyStack.top() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
+            // if (keyStack.top() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
+            if (keyVector.back() == ATTRIBUTE_MAP.at("children") && !nodeStack.empty())
             {
                 return true;
             }
             else
             {
-                keyStack.pop();
+                // keyStack.pop();
+                keyVector.pop_back();
             }
             return true;
         }
@@ -553,7 +596,8 @@ public:
 
         bool EndArray(rapidjson::SizeType elementCount)
         {
-            keyStack.pop();
+            // keyStack.pop();
+            keyVector.pop_back();
             return true;
         }
 
@@ -650,9 +694,11 @@ public:
             return;
         }
 
-        const int bufferSize = 65536; // 256KB
-        char buffer[bufferSize];
-        rapidjson::FileReadStream is(fp, buffer, sizeof(buffer));
+        const int bufferSize = 1024 * 1024 * 2; // 256KB
+        // char buffer[bufferSize];
+        char *buffer = new char[bufferSize]; // Allocate buffer on the heap
+
+        rapidjson::FileReadStream is(fp, buffer, bufferSize);
         rapidjson::Reader reader;
         MyHandler handler(this);
 
@@ -668,6 +714,8 @@ public:
                 this->attr_vals[attr].insert(val);
             }
         }
+
+        delete[] buffer;
 
         fclose(fp);
     }
@@ -770,6 +818,37 @@ public:
         return dis(gen); // Generate a random action
     }
 
+    int get_num_params()
+    {
+        int total_params = 0;
+        // traverse the tree and count the number of parameters
+        std::queue<CobwebNode *> q;
+        q.push(this->root);
+        while (!q.empty())
+        {
+            CobwebNode *current = q.front();
+            q.pop();
+            total_params += current->a_count.size();
+            total_params += current->sum_n_logn.size();
+            for (auto &[attr, val_map] : current->av_count)
+            {
+                total_params += val_map.size();
+            }
+            for (auto &child : current->children)
+            {
+                q.push(child);
+            }
+        }
+        return total_params;
+
+    }
+
+    unsigned long long int get_flop_count()
+    {
+        return this->flop_count;
+    }
+
+
     std::tuple<CobwebNode *, std::unordered_map<std::string, double>> cobweb(const AV_COUNT_TYPE &instance, size_t mode)
     {
         // std::cout << "cobweb top level" << std::endl;
@@ -821,6 +900,8 @@ public:
         auto start_while = std::chrono::high_resolution_clock::now();
         while (true)
         {
+
+            // GOTO
             while_loop_count += 1;
             if (current->children.empty() && (current->count == 0 || current->is_exact_match(instance)))
             {
@@ -1150,10 +1231,12 @@ public:
         return this->categorize_helper(instance);
     }
 
-    std::tuple<std::unordered_map<std::string, double>, std::unordered_map<int, std::unordered_map<int, double>>> predict_probs_mixture_helper(const AV_COUNT_TYPE &instance, double ll_path, int max_nodes, bool greedy, bool missing)
+    std::tuple<std::unordered_map<std::string, double>, std::unordered_map<int, std::unordered_map<int, double>>, std::vector<int>, std::vector<double>> predict_probs_mixture_helper(const AV_COUNT_TYPE &instance, double ll_path, int max_nodes, bool greedy, bool missing)
     {
 
         std::unordered_map<int, std::unordered_map<int, double>> out;
+        std::vector<int> path;
+        std::vector<double> path_score;
         // TODO: check the math here
         for (auto &[attr, val_set] : this->attr_vals)
         {
@@ -1210,6 +1293,7 @@ public:
 
         // std::cout << "root score: " << score << std::endl;
         queue.push(std::make_tuple(root_ll_inst, 0.0, this->root));
+        // path.push_back(this->root->concept_hash());
 
         auto start_while = std::chrono::high_resolution_clock::now();
         while (queue.size() > 0)
@@ -1229,6 +1313,8 @@ public:
             auto curr_score = std::get<0>(node);
             auto curr_ll = std::get<1>(node);
             auto curr = std::get<2>(node);
+            path.push_back(curr->concept_hash());
+            path_score.push_back(curr_score);
 
             // total_weight += curr_score;
             // std::cout << "weight += " << std::to_string(curr_score) << " (" << std::to_string(exp(curr_score)) << ")" << std::endl;
@@ -1300,6 +1386,7 @@ public:
                 // double score = exp(child_ll_inst + child_ll);
                 // std::cout << "Node score: " << score << ", ll_node: " << child_ll << ", ll_inst: " << child_ll_inst << std::endl;
                 queue.push(std::make_tuple(child_ll_inst + child_ll, child_ll, child));
+                // path.push_back(child->concept_hash());
             }
             auto end_log_prob_loop = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed_log_prob_loop = end_log_prob_loop - start_log_prob_loop;
@@ -1335,10 +1422,10 @@ public:
         operation_stats["exp_subtract_time"] = exp_subtract_time;
 
         // return out;
-        return std::make_tuple(operation_stats, out);
+        return std::make_tuple(operation_stats, out, path, path_score);
     }
 
-    std::tuple<std::unordered_map<std::string, double>, std::unordered_map<int, std::unordered_map<int, double>>> predict_probs_mixture(INSTANCE_TYPE instance, int max_nodes, bool greedy, bool missing)
+    std::tuple<std::unordered_map<std::string, double>, std::unordered_map<int, std::unordered_map<int, double>>, std::vector<int>, std::vector<double>> predict_probs_mixture(INSTANCE_TYPE instance, int max_nodes, bool greedy, bool missing)
     {
         // AV_COUNT_TYPE cached_instance;
         // for (auto &[attr, val_map] : instance)
@@ -1368,7 +1455,7 @@ public:
                                            {
                                                //    out[i] = this->predict_probs_mixture(instances[i], max_nodes, greedy, missing);
                                                // detuple the tuple
-                                               auto [operation_stats, probs] = this->predict_probs_mixture(instances[i], max_nodes, greedy, missing);
+                                               auto [operation_stats, probs, path, path_score] = this->predict_probs_mixture(instances[i], max_nodes, greedy, missing);
                                                out[i] = probs;
                                            });
 
@@ -1394,6 +1481,89 @@ public:
 
         return out;
     }
+
+    std::vector<CobwebTree *> ifit_parallel(std::vector<INSTANCE_TYPE> instances, int parallelism)
+    {
+        std::vector<CobwebTree *> trees;
+        // CobwebTree *final_tree = new CobwebTree(*this);
+        unsigned int total_tasks = parallelism;
+
+        for (int i = 0; i < parallelism; i++)
+        {
+            CobwebTree *tree = new CobwebTree(0.000001, false, 0, true, false);
+            trees.push_back(tree);
+        }
+
+        BS::thread_pool pool = BS::thread_pool(parallelism);
+
+        // Divide the instances into parallelism chunks
+        std::vector<std::vector<INSTANCE_TYPE>> instance_chunks(parallelism);
+        int chunk_size = instances.size() / parallelism;
+        int remainder = instances.size() % parallelism;
+        int start = 0;
+
+        for (int i = 0; i < parallelism; ++i) 
+        {
+            int end = start + chunk_size + (i < remainder ? 1 : 0);  // Distribute remainder evenly
+            instance_chunks[i].reserve(end - start);  // Reserve space to avoid multiple allocations
+            for (int j = start; j < end; ++j) 
+            {
+                instance_chunks[i].push_back(instances[j]);
+            }
+            start = end;
+        }
+
+        auto t_start = std::chrono::high_resolution_clock::now();
+
+        pool.detach_sequence<unsigned int>(0, parallelism,
+                                           [&instance_chunks, &trees](const unsigned int i)
+                                           {
+                                               trees[i]->ifit_parallel_helper(instance_chunks[i]);
+                                           });
+
+        while (true)
+        {
+            // Wait and check the remaining tasks every second
+            if (!pool.wait_for(std::chrono::milliseconds(1000)))
+            {
+                // Calculate progress
+                unsigned int remaining_tasks = pool.get_tasks_total(); // Change this based on how your thread pool reports tasks
+                unsigned int completed_tasks = total_tasks - remaining_tasks;
+                double progress = static_cast<double>(completed_tasks) / total_tasks;
+                
+                // Measure elapsed time
+                auto current = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> elapsed = current - t_start;
+                
+                // Update the progress bar
+                displayProgressBar(70, progress, elapsed.count() / 1000.0);
+            }
+            else
+            {
+                break;
+            }
+        }
+        pool.wait();  
+
+        std::cout << "Consolidating trees..." << std::endl;
+        for (int i = 0; i < parallelism; i++)
+        {
+            // std::cout << "tree av_count size: " << trees[i]->root->av_count.size() << std::endl;    
+            this->ifit(trees[i]->root->av_count, 1);
+        }
+
+        return trees;
+    }
+
+    void ifit_parallel_helper(std::vector<INSTANCE_TYPE> instances)
+    {
+        // loop through the instances
+        for (auto &instance : instances)
+        {
+            this->ifit(instance, 1);
+        }
+    }
+
 };
 
 inline CobwebNode::CobwebNode()
@@ -1403,6 +1573,8 @@ inline CobwebNode::CobwebNode()
     a_count = ATTR_COUNT_TYPE();
     parent = nullptr;
     tree = nullptr;
+
+    
 }
 
 inline CobwebNode::CobwebNode(CobwebNode *otherNode)
@@ -1430,6 +1602,7 @@ inline void CobwebNode::increment_counts(const AV_COUNT_TYPE &instance)
         for (auto &[val, cnt] : val_map)
         {
             this->a_count[attr] += cnt;
+            this->tree->flop_count += 1;
 
             // if (!attr.is_hidden())
             if (attr > 0)
@@ -1438,16 +1611,19 @@ inline void CobwebNode::increment_counts(const AV_COUNT_TYPE &instance)
                 {
                     double tf = this->av_count.at(attr).at(val) + this->tree->alpha;
                     this->sum_n_logn[attr] -= tf * log(tf);
+                    this->tree->flop_count += 3;
                 }
             }
 
             this->av_count[attr][val] += cnt;
+            this->tree->flop_count += 1;
 
             // if (!attr.is_hidden())
             if (attr > 0)
             {
                 double tf = this->av_count.at(attr).at(val) + this->tree->alpha;
                 this->sum_n_logn[attr] += tf * log(tf);
+                this->tree->flop_count += 3;
                 // std::cout << "av_count for [" << attr.get_string() << "] = [" << val.get_string() << "]: " << this->av_count[attr][val] << std::endl;
                 // std::cout << "updated sum nlogn for [" << attr.get_string() << "]: " << this->sum_n_logn[attr] << std::endl;
             }
@@ -1462,6 +1638,7 @@ inline void CobwebNode::update_counts_from_node(CobwebNode *node)
     for (auto &[attr, val_map] : node->av_count)
     {
         this->a_count[attr] += node->a_count.at(attr);
+        this->tree->flop_count += 1;
 
         for (auto &[val, cnt] : val_map)
         {
@@ -1472,20 +1649,25 @@ inline void CobwebNode::update_counts_from_node(CobwebNode *node)
                 {
                     double tf = this->av_count.at(attr).at(val) + this->tree->alpha;
                     this->sum_n_logn[attr] -= tf * log(tf);
+                    this->tree->flop_count += 3;
                 }
             }
 
             this->av_count[attr][val] += cnt;
+            this->tree->flop_count += 1;
 
             // if (!attr.is_hidden())
             if (attr > 0)
             {
                 double tf = this->av_count.at(attr).at(val) + this->tree->alpha;
                 this->sum_n_logn[attr] += tf * log(tf);
+                this->tree->flop_count += 3;
             }
         }
     }
 }
+
+
 
 inline double CobwebNode::entropy_attr_insert(ATTR_TYPE attr, const AV_COUNT_TYPE &instance)
 {
@@ -1502,6 +1684,7 @@ inline double CobwebNode::entropy_attr_insert(ATTR_TYPE attr, const AV_COUNT_TYP
     if (this->tree->weight_attr)
     {
         ratio = (1.0 * this->tree->root->a_count.at(attr)) / (this->tree->root->count);
+        this->tree->flop_count += 2;
         // ratio = (1.0 * attr_count) / this->count;
     }
     // ratio = std::ceil(ratio);
@@ -1523,19 +1706,24 @@ inline double CobwebNode::entropy_attr_insert(ATTR_TYPE attr, const AV_COUNT_TYP
         for (auto &[val, cnt] : instance.at(attr))
         {
             attr_count += cnt;
+            this->tree->flop_count += 1;
+
             COUNT_TYPE prior_av_count = 0.0;
             if (this->av_count.count(attr) && this->av_count.at(attr).count(val))
             {
                 prior_av_count = this->av_count.at(attr).at(val);
                 COUNT_TYPE tf = prior_av_count + this->tree->alpha;
                 sum_n_logn -= tf * log(tf);
+                this->tree->flop_count += 3;
             }
             else
             {
                 num_vals_in_c += 1;
+                this->tree->flop_count += 1;
             }
             COUNT_TYPE tf = prior_av_count + cnt + this->tree->alpha;
             sum_n_logn += (tf)*log(tf);
+            this->tree->flop_count += 4;
         }
     }
 
@@ -1544,6 +1732,7 @@ inline double CobwebNode::entropy_attr_insert(ATTR_TYPE attr, const AV_COUNT_TYP
                                 (sum_n_logn + n0 * alpha * log(alpha)) -
                             log(attr_count +
                                 num_vals_total * alpha));
+    this->tree->flop_count += 12;
     return info;
 }
 
@@ -1558,6 +1747,7 @@ inline double CobwebNode::entropy_insert(const AV_COUNT_TYPE &instance)
         if (attr < 0)
             continue;
         info += this->entropy_attr_insert(attr, instance);
+        this->tree->flop_count += 1;
     }
 
     // iterate over attr in instance not in av_count
@@ -1569,6 +1759,7 @@ inline double CobwebNode::entropy_insert(const AV_COUNT_TYPE &instance)
         if (this->av_count.count(attr))
             continue;
         info += this->entropy_attr_insert(attr, instance);
+        this->tree->flop_count += 1;
     }
 
     return info;
@@ -1784,6 +1975,7 @@ inline double CobwebNode::entropy_attr(ATTR_TYPE attr)
     if (this->tree->weight_attr)
     {
         ratio = (1.0 * this->tree->root->a_count.at(attr)) / (this->tree->root->count);
+        this->tree->flop_count += 2;
         // ratio = (1.0 * attr_count) / this->count;
     }
     // ratio = std::ceil(ratio);
@@ -1795,6 +1987,7 @@ inline double CobwebNode::entropy_attr(ATTR_TYPE attr)
     }
 
     int n0 = num_vals_total - num_vals_in_c;
+    this->tree->flop_count += 1;
     // std::cout << "sum n logn: " << sum_n_logn << std::endl;
     // std::cout << "n0: " << n0 << std::endl;
     // std::cout << "alpha: " << alpha << std::endl;
@@ -1803,6 +1996,7 @@ inline double CobwebNode::entropy_attr(ATTR_TYPE attr)
                                 (sum_n_logn + n0 * alpha * log(alpha)) -
                             log(attr_count +
                                 num_vals_total * alpha));
+    this->tree->flop_count += 11;
     return info;
 
     /*
@@ -1833,6 +2027,7 @@ inline double CobwebNode::entropy()
         // if (attr.is_hidden())
         if (attr < 0)
             continue;
+        this->tree->flop_count += 1;
         info += this->entropy_attr(attr);
     }
 
@@ -1891,6 +2086,7 @@ inline std::tuple<double, CobwebNode *, CobwebNode *> CobwebNode::two_best_child
         std::vector<std::tuple<double, double, double, CobwebNode *>> relative_pu;
         for (auto &child : this->children)
         {
+            this->tree->flop_count += 4;
             relative_pu.push_back(
                 std::make_tuple(
                     (child->count * child->entropy()) -
@@ -2031,6 +2227,7 @@ inline double CobwebNode::pu_for_insert(CobwebNode *child, const AV_COUNT_TYPE &
         for (auto &[attr, val_set] : this->tree->attr_vals)
         {
             parent_entropy += this->entropy_attr_insert(attr, instance);
+            this->tree->flop_count += 1;
         }
 
         for (auto &c : children)
@@ -2039,8 +2236,11 @@ inline double CobwebNode::pu_for_insert(CobwebNode *child, const AV_COUNT_TYPE &
             {
                 double p_of_child = (c->count + 1.0) / (this->count + 1.0);
                 concept_entropy -= p_of_child * log(p_of_child);
+                this->tree->flop_count += 5;
+
                 for (auto &[attr, val_set] : this->tree->attr_vals)
                 {
+                    this->tree->flop_count += 2;
                     children_entropy += p_of_child * c->entropy_attr_insert(attr, instance);
                 }
             }
@@ -2048,9 +2248,11 @@ inline double CobwebNode::pu_for_insert(CobwebNode *child, const AV_COUNT_TYPE &
             {
                 double p_of_child = (1.0 * c->count) / (this->count + 1.0);
                 concept_entropy -= p_of_child * log(p_of_child);
+                this->tree->flop_count += 5;
 
                 for (auto &[attr, val_set] : this->tree->attr_vals)
                 {
+                    this->tree->flop_count += 2;
                     children_entropy += p_of_child * c->entropy_attr(attr);
                 }
             }
@@ -2059,14 +2261,17 @@ inline double CobwebNode::pu_for_insert(CobwebNode *child, const AV_COUNT_TYPE &
         double obj = (parent_entropy - children_entropy);
         if (this->tree->objective == 1)
         {
+            this->tree->flop_count += 1;
             obj /= parent_entropy;
         }
         else if (this->tree->objective == 2)
         {
+            this->tree->flop_count += 2;
             obj /= (children_entropy + concept_entropy);
         }
         if (this->tree->children_norm)
         {
+            this->tree->flop_count += 1;
             obj /= this->children.size();
         }
         return obj;
@@ -2087,12 +2292,14 @@ inline double CobwebNode::pu_for_insert(CobwebNode *child, const AV_COUNT_TYPE &
                 double p_of_child = (c->count + 1.0) / (this->count + 1.0);
                 children_entropy += p_of_child * c->entropy_attr_insert(attr, instance);
                 concept_entropy -= p_of_child * log(p_of_child);
+                this->tree->flop_count += 7;
             }
             else
             {
                 double p_of_child = (1.0 * c->count) / (this->count + 1.0);
                 children_entropy += p_of_child * c->entropy_attr(attr);
                 concept_entropy -= p_of_child * log(p_of_child);
+                this->tree->flop_count += 7;
             }
         }
 
@@ -2101,17 +2308,21 @@ inline double CobwebNode::pu_for_insert(CobwebNode *child, const AV_COUNT_TYPE &
         double obj = (parent_entropy - children_entropy);
         if (this->tree->objective == 1)
         {
+            this->tree->flop_count += 1;
             obj /= parent_entropy;
         }
         else if (this->tree->objective == 2)
         {
+            this->tree->flop_count += 2;
             obj /= (children_entropy + concept_entropy);
         }
 
         if (this->tree->children_norm)
         {
+            this->tree->flop_count += 1;
             obj /= this->children.size();
         }
+        this->tree->flop_count += 1;
         entropy += obj;
 
         // entropy += (parent_entropy - children_entropy) / this->children.size();
@@ -2513,6 +2724,7 @@ inline bool CobwebNode::is_exact_match(const AV_COUNT_TYPE &instance)
             {
                 all_vals.insert(val);
                 instance_attr_count += cnt;
+                this->tree->flop_count += 1;
             }
 
             for (auto &val : all_vals)
@@ -2527,8 +2739,11 @@ inline bool CobwebNode::is_exact_match(const AV_COUNT_TYPE &instance)
                 }
 
                 double instance_prob = (1.0 * instance.at(attr).at(val)) / instance_attr_count;
+                this->tree->flop_count += 2;
                 double concept_prob = (1.0 * this->av_count.at(attr).at(val)) / this->a_count.at(attr);
+                this->tree->flop_count += 2;
 
+                this->tree->flop_count += 1;
                 if (abs(instance_prob - concept_prob) > 0.00001)
                 {
                     return false;
@@ -2549,9 +2764,10 @@ inline std::string CobwebNode::__str__()
     return this->pretty_print();
 }
 
-inline std::string CobwebNode::concept_hash()
+inline int CobwebNode::concept_hash()
 {
-    return std::to_string(this->_hash());
+    // cast to int
+    return this->_hash();
 }
 
 inline std::string CobwebNode::pretty_print(int depth)
@@ -3256,6 +3472,13 @@ inline double CobwebNode::log_prob_instance(const AV_COUNT_TYPE &instance)
                 a_count += this->a_count.at(attr);
             }
 
+            if (a_count == num_vals * alpha && av_count == alpha)
+            {
+                // if we have no counts, we don't want to add anything to the
+                // log_prob
+                a_count = 70000 * alpha;
+            }
+
             // we use cnt here to weight accuracy by counts in the training
             // instance. Usually this is 1, but in  models, it might
             // be something else.
@@ -3422,10 +3645,16 @@ NB_MODULE(cobweb_discrete, m)
              nb::arg("objective") = 0,
              nb::arg("children_norm") = true,
              nb::arg("norm_attributes") = false)
+        .def("ifit_parallel", &CobwebTree::ifit_parallel,
+             nb::arg("instances") = std::vector<AV_COUNT_TYPE>(),
+             nb::arg("parallelism"),
+             nb::rv_policy::reference)
         .def("ifit", &CobwebTree::ifit,
-             nb::arg("instance") = std::vector<AV_COUNT_TYPE>(),
+             nb::arg("instance") = AV_COUNT_TYPE(),
              nb::arg("mode"),
              nb::rv_policy::reference)
+        .def("get_num_params", &CobwebTree::get_num_params)
+        .def("get_flop_count", &CobwebTree::get_flop_count)
         // // Bind 'ifit' with appropriate handling of the return type
         // .def("ifit", [](CobwebTree &self, const std::unordered_map<int, std::unordered_map<int, double>> &instance, int mode)
         //      {
@@ -3447,5 +3676,9 @@ NB_MODULE(cobweb_discrete, m)
         // .def("load_json", &CobwebTree::load_json)
         .def("load_json_stream", &CobwebTree::load_json_stream)
         .def("write_json_stream", &CobwebTree::write_json_stream)
-        .def_ro("root", &CobwebTree::root, nb::rv_policy::reference);
+        .def_ro("root", &CobwebTree::root, nb::rv_policy::reference)
+        .def_ro("attr_vals", &CobwebTree::attr_vals, nb::rv_policy::reference);
+        // .def_ro("av_count", &CobwebNode::av_count, nb::rv_policy::reference)
+
+
 }

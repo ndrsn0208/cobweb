@@ -9,6 +9,7 @@ from copy import copy, deepcopy
 from tqdm import tqdm
 import json
 import os
+import sys
 
 """
 The example dataset is available at: 
@@ -16,10 +17,13 @@ https://www.kaggle.com/datasets/itachi9604/disease-symptom-description-dataset?s
 4921 cases in total.
 """
 
+# seed = int(sys.argv[1])
+mode = int(sys.argv[2])
+
 # Configurations:
 size_tr = 100  # the size of the training set (so the rest data is used for prediction)
-random_seed = 32
-verbose = True
+random_seed = int(sys.argv[1])
+verbose = False
 
 
 # severity = {}
@@ -101,8 +105,8 @@ if verbose:
 	print(f"Start training. Train with {size_tr} samples.")
 tree = CobwebTree(0.001, False, 0, True, False)
 for instance in tqdm(instances_tr):
-	tree.ifit(instance, mode=1)
-visualize(tree)  # a visualization of the trained Cobweb tree
+	tree.ifit(instance, mode=mode)
+# visualize(tree)  # a visualization of the trained Cobweb tree
 
 # tree_json = tree.dump_json()
 # with open("cobweb-tabular.json", 'w') as fout:
@@ -145,7 +149,7 @@ n_correct = 0
 diseases_pred = []
 for i in tqdm(range(len(instances_te))):
 	instance = instances_te[i]
-	_, probs_pred = tree.predict_probs(instance, 50, False, False)
+	_, probs_pred, _, _ = tree.predict_probs(instance, 50, False, False)
 	# probs_pred = tree.categorize(instance).predict_probs()
 	disease_pred = sorted([(prob, disease) for (disease, prob) in probs_pred[disease_key].items()], reverse=True)[0][1]
 	if disease_pred == diseases_te[i]:
@@ -159,19 +163,21 @@ for i in tqdm(range(len(instances_te))):
 accuracy = n_correct / len(instances_te)
 print(f"The test accuracy of Cobweb after training {size_tr} samples: {accuracy}")
 
+with open(f"accuracy-{mode}.csv", 'a') as fout:
+	fout.write(f"{random_seed},{accuracy}\n")
 
 # Predict the symptoms of a disease:
-instance_te_disease = {disease_key: {variable_dict['diabetes-']: 1}}
-probs_pred = tree.categorize(instance_te_disease).get_basic_level().predict_probs()
-# probs_pred = tree.predict_probs(instance, 10, False, False)
-symptoms_pred = sorted([(prob, symptom) for (symptom, prob) in probs_pred[symptom_key].items()], reverse=True)[:10]
-print(symptoms_pred)
+# instance_te_disease = {disease_key: {variable_dict['diabetes-']: 1}}
+# probs_pred = tree.categorize(instance_te_disease).get_basic_level().predict_probs()
+# # probs_pred = tree.predict_probs(instance, 10, False, False)
+# symptoms_pred = sorted([(prob, symptom) for (symptom, prob) in probs_pred[symptom_key].items()], reverse=True)[:10]
+# print(symptoms_pred)
 
-# instances_te_reverse = {-1: {'vomiting': 1, 'abdominal_pain': 1, 'loss_of_appetite': 1, 'fatigue': 1, 'yellowish_skin': 1, 'nausea': 1, 'high_fever': 1, 'dark_urine': 1}}
-instances_te_reverse = {disease_key: {variable_dict['vomiting']: 1, variable_dict['abdominal_pain']: 1, variable_dict['loss_of_appetite']: 1, variable_dict['fatigue']: 1, variable_dict['yellowish_skin']: 1, variable_dict['nausea']: 1, variable_dict['high_fever']: 1, variable_dict['dark_urine']: 1}}
-_, probs_pred = tree.predict_probs(instance, 50, False, False)
-disease_pred = sorted([(prob, disease) for (disease, prob) in probs_pred[disease_key].items()], reverse=True)[0][1]
-print(disease_pred)
+# # instances_te_reverse = {-1: {'vomiting': 1, 'abdominal_pain': 1, 'loss_of_appetite': 1, 'fatigue': 1, 'yellowish_skin': 1, 'nausea': 1, 'high_fever': 1, 'dark_urine': 1}}
+# instances_te_reverse = {disease_key: {variable_dict['vomiting']: 1, variable_dict['abdominal_pain']: 1, variable_dict['loss_of_appetite']: 1, variable_dict['fatigue']: 1, variable_dict['yellowish_skin']: 1, variable_dict['nausea']: 1, variable_dict['high_fever']: 1, variable_dict['dark_urine']: 1}}
+# _, probs_pred = tree.predict_probs(instance, 50, False, False)
+# disease_pred = sorted([(prob, disease) for (disease, prob) in probs_pred[disease_key].items()], reverse=True)[0][1]
+# print(disease_pred)
 
 
 

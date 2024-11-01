@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 from tqdm import tqdm
+import numpy as np
 
 from cobweb.cobweb_continuous import CobwebContinuousTree
 from cobweb.visualize import visualize
@@ -75,14 +76,15 @@ loader_te = get_data_loader(
 """ Initialize and Train Cobweb """
 imgs_tr, labels_tr = next(iter(loader_tr))
 # tree = CobwebTorchTree(imgs_tr.shape[1:])
-tree = CobwebContinuousTree(imgs_tr.shape[1:].numel())
+tree = CobwebContinuousTree(imgs_tr.shape[1:].numel(), 100000)
 if verbose:
     print("Start Training.")  # noqa: T201
 for i in tqdm(range(imgs_tr.shape[0])):
     #  tree.ifit(imgs_tr[i], labels_tr[i].item())
-    tree.ifit(imgs_tr[i].flatten().numpy())
+    tree.ifit(imgs_tr[i].flatten().numpy(), labels_tr[i].item())
 # Visualize Cobweb:
 visualize(tree)
+
 
 
 """ Make label predictions for the test set """
@@ -92,11 +94,14 @@ if verbose:
     print("Start Predicting.")  # noqa: T201
 for i in tqdm(range(imgs_te.shape[0])):
     # Make a prediction:
-    pred_probs = tree.predict_probs(imgs_te[i], None, max_nodes=50)
-    pred_label = torch.tensor(
-        sorted([(pred_probs[ele], ele) for ele in pred_probs], reverse=True)[0][1]
-    )
-    pred_labels.append(pred_label)
+    pred_probs = tree.predict(imgs_te[i].flatten(), 1000, False)
+    # print(pred_probs)
+    pred_probs = np.array(pred_probs).argmax()
+    pred_labels.append(pred_probs)
+    # pred_label = torch.tensor(
+    #     sorted([(pred_probs[ele], ele) for ele in pred_probs], reverse=True)[0][1]
+    # )
+    # pred_labels.append(pred_label)
 
 # Then you can return accuracy for the label predictions
 correct = [1 if pred_labels[i] == labels_te[i] else 0 for i in range(len(pred_labels))]
